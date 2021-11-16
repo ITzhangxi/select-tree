@@ -9,6 +9,7 @@
         :expand-on-click-node="false"
         :default-checked-keys="checkedKeys"
         :default-expanded-keys="expandedKeys"
+        :props="props"
       />
     </template>
   </el-select>
@@ -27,12 +28,12 @@ const setActive = (() => {
   };
 })();
 
-function mapData(arr = [], id) {
+function mapData(arr = [], id, children) {
   const map = {};
   arr.forEach((item) => {
     map[item[id]] = item;
-    if (Array.isArray(item.children)) {
-      Object.assign(map, mapData(item.children, id));
+    if (Array.isArray(item[children])) {
+      Object.assign(map, mapData(item[children], id, children));
     }
   });
   return map;
@@ -64,7 +65,7 @@ export default defineComponent({
   },
   emits: ["update:modelValue", "node-click"],
   setup(props, context) {
-    const map = mapData(props.treeData, props.nodeKey);
+    const map = mapData(props.treeData, props.nodeKey, props.props.children);
 
     const selectVal = ref("");
     const checkedKeys = ref([]);
@@ -73,7 +74,7 @@ export default defineComponent({
     watch(
       () => props.modelValue,
       (val) => {
-        selectVal.value = (map[val] && map[val].label) || val;
+        selectVal.value = (map[val] && map[val][props.props.label]) || val;
         checkedKeys.value = [val];
         expandedKeys.value = [val];
         setActive(val);
