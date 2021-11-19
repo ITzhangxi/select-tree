@@ -1,5 +1,11 @@
 <template>
-  <el-select v-model="selectVal" :placeholder="placeholder" class="select-tree">
+  <el-select
+    v-model="selectVal"
+    :placeholder="placeholder"
+    class="select-tree"
+    ref="selectRef"
+    v-bind="$attrs.selectProps"
+  >
     <template #empty>
       <el-tree
         class="select-tree"
@@ -10,6 +16,7 @@
         :default-checked-keys="checkedKeys"
         :default-expanded-keys="expandedKeys"
         :props="props"
+        v-bind="$attrs.treeProps"
       />
     </template>
   </el-select>
@@ -82,11 +89,15 @@ export default defineComponent({
       { immediate: true, deep: true }
     );
 
+    const selectRef = ref(null);
+
     const handleNodeClick = (val) => {
       context.emit("update:modelValue", val[props.nodeKey]);
       context.emit("node-click", ...arguments);
+      selectRef.value && selectRef.value.blur();
     };
-    return { handleNodeClick, selectVal, checkedKeys, expandedKeys };
+
+    return { handleNodeClick, selectVal, checkedKeys, expandedKeys, selectRef };
   },
 });
 </script>

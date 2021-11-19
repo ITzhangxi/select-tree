@@ -5,6 +5,8 @@
         v-model="formff.name"
         :treeData="treeData"
         nodeKey="id"
+        clearable
+        :selectProps="{ clearable: true }"
       ></select-tree>
     </el-form-item>
   </el-form>
