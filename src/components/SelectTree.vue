@@ -5,7 +5,17 @@
     class="select-tree"
     ref="selectRef"
     v-bind="$attrs.selectProps"
+    @remove-tag="handleRemoveTag"
+    @clear="handleClear"
   >
+    <!-- <el-option
+      v-for="item in Object.values(map)"
+      :key="item[nodeKey]"
+      :label="item[props.label]"
+      :value="item[nodeKey]"
+      style="display: none"
+    >
+    </el-option> -->
     <template #empty>
       <el-tree
         class="select-tree"
@@ -22,16 +32,20 @@
   </el-select>
 </template>
 <script>
-import { defineComponent, watch, ref } from "vue";
+import { defineComponent, watch, ref, getCurrentInstance } from "vue";
 const setActive = (() => {
   const sty = document.createElement("style");
   document.body.appendChild(sty);
-  return function (id) {
-    sty.innerText = `
+  return function (ids) {
+    sty.innerText = ids
+      .map((id) => {
+        return `
         .is-checked[data-key="${id}"]>.el-tree-node__content {
             background-color: #f5f7fa !important;
         }
         `;
+      })
+      .join("");
   };
 })();
 
@@ -57,7 +71,7 @@ export default defineComponent({
       default: "请选择",
     },
     modelValue: {
-      type: [String, Number],
+      type: [String, Number, Array],
       default: "",
     },
     nodeKey: {
@@ -70,21 +84,35 @@ export default defineComponent({
       default: () => ({ children: "children", label: "label" }),
     },
   },
-  emits: ["update:modelValue", "node-click"],
+  emits: ["update:modelValue", "node-click", "clear"],
   setup(props, context) {
+    const self = getCurrentInstance();
+    const ctx = self.ctx || {};
+    const $attrs = ctx.$attrs || {};
+    const selectProps = $attrs.selectProps || {};
     const map = mapData(props.treeData, props.nodeKey, props.props.children);
 
-    const selectVal = ref("");
+    const selectVal = ref(selectProps.multiple ? [] : "");
     const checkedKeys = ref([]);
     const expandedKeys = ref([]);
 
     watch(
       () => props.modelValue,
       (val) => {
-        selectVal.value = (map[val] && map[val][props.props.label]) || val;
-        checkedKeys.value = [val];
-        expandedKeys.value = [val];
-        setActive(val);
+        const mVal = Array.isArray(val) ? val : [val];
+        if (selectProps.multiple) {
+          selectVal.value = [];
+          mVal.forEach((item) => {
+            selectVal.value.push(
+              (map[item] && map[item][props.props.label]) || item
+            );
+          });
+        } else {
+          selectVal.value = (map[val] && map[val][props.props.label]) || val;
+        }
+        checkedKeys.value = [...mVal];
+        expandedKeys.value = [...mVal];
+        setActive(mVal);
       },
       { immediate: true, deep: true }
     );
@@ -92,12 +120,41 @@ export default defineComponent({
     const selectRef = ref(null);
 
     const handleNodeClick = (val) => {
-      context.emit("update:modelValue", val[props.nodeKey]);
+      const modelValue = Array.isArray(props.modelValue)
+        ? props.modelValue
+        : [];
+      let selectVal = new Set(modelValue);
+      if (selectProps.multiple) {
+        selectVal.has(val[props.nodeKey])
+          ? selectVal.delete(val[props.nodeKey])
+          : selectVal.add(val[props.nodeKey]);
+        selectVal = [...selectVal];
+      } else {
+        selectVal = val[props.nodeKey];
+        selectRef.value && selectRef.value.blur();
+      }
+      context.emit("update:modelValue", selectVal);
       context.emit("node-click", ...arguments);
-      selectRef.value && selectRef.value.blur();
     };
 
-    return { handleNodeClick, selectVal, checkedKeys, expandedKeys, selectRef };
+    const handleRemoveTag = () => {
+      // context.emit("update:modelValue", "");
+    };
+    const handleClear = () => {
+      context.emit("update:modelValue", "");
+      context.emit("clear", ...arguments);
+    };
+
+    return {
+      handleNodeClick,
+      selectVal,
+      checkedKeys,
+      expandedKeys,
+      selectRef,
+      handleRemoveTag,
+      handleClear,
+      map,
+    };
   },
 });
 </script>
