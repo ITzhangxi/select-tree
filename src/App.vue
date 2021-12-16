@@ -57,40 +57,17 @@ export default defineComponent({
         {
           label: "Level one 1",
           id: 1,
+          status: true,
           children: [
             {
               label: "Level two 1-1",
               id: 2,
+              status: true,
               children: [
                 {
                   label: "Level three 1-1-1",
                   id: 9,
-                },
-              ],
-            },
-          ],
-        },
-        {
-          label: "Level one 2",
-          id: 3,
-          children: [
-            {
-              label: "Level two 2-1",
-              id: 4,
-              children: [
-                {
-                  label: "Level three 2-1-1",
-                  id: 5,
-                },
-              ],
-            },
-            {
-              label: "Level two 2-2",
-              id: 6,
-              children: [
-                {
-                  label: "Level three 2-2-1",
-                  id: 7,
+                  status: false,
                 },
               ],
             },

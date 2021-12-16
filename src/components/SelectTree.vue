@@ -21,10 +21,14 @@
         class="select-tree"
         :data="treeData"
         :node-key="nodeKey"
+        :show-checkbox="true"
+        :check-strictly="true"
+        @check="handleCheck"
         @node-click="handleNodeClick"
+        ref="treeRef"
         :expand-on-click-node="false"
-        :default-checked-keys="checkedKeys"
-        :default-expanded-keys="expandedKeys"
+        :checked-keys="checkedKeys"
+        :expanded-keys="expandedKeys"
         :props="props"
         v-bind="$attrs.treeProps"
       />
@@ -99,6 +103,7 @@ export default defineComponent({
     watch(
       () => props.modelValue,
       (val) => {
+        // eslint-disable-next-line no-debugger
         const mVal = Array.isArray(val) ? val : [val];
         if (selectProps.multiple) {
           selectVal.value = [];
@@ -118,7 +123,7 @@ export default defineComponent({
     );
 
     const selectRef = ref(null);
-
+    const treeRef = ref(null);
     const handleNodeClick = (val) => {
       const modelValue = Array.isArray(props.modelValue)
         ? props.modelValue
@@ -129,14 +134,40 @@ export default defineComponent({
           ? selectVal.delete(val[props.nodeKey])
           : selectVal.add(val[props.nodeKey]);
         selectVal = [...selectVal];
+        checkedKeys.value = [...selectVal];
       } else {
         selectVal = val[props.nodeKey];
         selectRef.value && selectRef.value.blur();
+        let id = val[props.nodeKey];
+        checkedKeys.value = [id];
       }
+      treeRef.value.setCheckedKeys(checkedKeys.value);
       context.emit("update:modelValue", selectVal);
       context.emit("node-click", ...arguments);
     };
-
+    const handleCheck = (node, { checkedKeys: handleCheckedKeys = [] }) => {
+      const modelValue = Array.isArray(props.modelValue)
+        ? props.modelValue
+        : [];
+      let selectVal = new Set(modelValue);
+      if (selectProps.multiple) {
+        selectVal = [...handleCheckedKeys];
+        checkedKeys.value = [...handleCheckedKeys];
+      } else {
+        if (handleCheckedKeys.includes(node[props.nodeKey])) {
+          selectVal = node[props.nodeKey];
+          selectRef.value && selectRef.value.blur();
+          let id = node[props.nodeKey];
+          checkedKeys.value = [id];
+        } else {
+          selectVal = "";
+          checkedKeys.value = [];
+        }
+      }
+      treeRef.value.setCheckedKeys(checkedKeys.value);
+      context.emit("update:modelValue", selectVal);
+      context.emit("node-click", ...arguments);
+    };
     const handleRemoveTag = () => {
       // context.emit("update:modelValue", "");
     };
@@ -147,6 +178,7 @@ export default defineComponent({
 
     return {
       handleNodeClick,
+      handleCheck,
       selectVal,
       checkedKeys,
       expandedKeys,
@@ -154,6 +186,7 @@ export default defineComponent({
       handleRemoveTag,
       handleClear,
       map,
+      treeRef,
     };
   },
 });
