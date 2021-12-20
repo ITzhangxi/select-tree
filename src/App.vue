@@ -15,17 +15,19 @@
         v-model="formff.name"
         :treeData="treeData"
         nodeKey="id"
-        :selectProps="{ clearable: true }"
+        :selectProps="{ clearable: true, multiple: true }"
       ></select-tree>
     </el-form-item>
   </el-form>
   <el-button @click="handleSubmit">Submit</el-button>
-  <select-tree
-    v-model="formff.name"
-    :treeData="treeData"
-    nodeKey="id"
-    :selectProps="{ clearable: true }"
-  ></select-tree>
+  <div style="float: right">
+    <select-tree
+      v-model="formff.name"
+      :treeData="treeData"
+      nodeKey="id"
+      :selectProps="{ clearable: true, multiple: true }"
+    ></select-tree>
+  </div>
   {{ typeof formff.name }}
   {{ formff.name }}
 </template>

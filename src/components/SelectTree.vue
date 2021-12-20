@@ -28,7 +28,14 @@
   </el-select>
 </template>
 <script>
-import { defineComponent, watch, ref, getCurrentInstance, nextTick } from "vue";
+import {
+  defineComponent,
+  watch,
+  ref,
+  getCurrentInstance,
+  nextTick,
+  computed,
+} from "vue";
 const setActive = (() => {
   const sty = document.createElement("style");
   document.body.appendChild(sty);
@@ -80,15 +87,16 @@ export default defineComponent({
       default: () => ({ children: "children", label: "label" }),
     },
   },
-  emits: ["update:modelValue", "node-click", "clear", "check"],
+  emits: ["update:modelValue", "node-click", "clear", "check", "remove-tag"],
   setup(props, context) {
     const self = getCurrentInstance();
     const ctx = self.ctx || {};
     const $attrs = ctx.$attrs || {};
     const selectProps = $attrs.selectProps || {};
     const map = mapData(props.treeData, props.nodeKey, props.props.children);
+    const isMultiple = computed(() => selectProps.multiple);
 
-    const selectVal = ref(selectProps.multiple ? [] : "");
+    const selectVal = ref(isMultiple.value ? [] : "");
     const checkedKeys = ref([]);
     const expandedKeys = ref([]);
     const selectRef = ref(null);
@@ -97,16 +105,15 @@ export default defineComponent({
     // 设置tree选中数据
     const setCheckedKeys = (id, reset = false) => {
       const ids = Array.isArray(id) ? id : [id];
-      if (selectProps.multiple) {
-        if (reset) checkedKeys.value = [];
+      if (isMultiple.value) {
+        const keys = reset ? [] : [...checkedKeys.value];
         ids.forEach((item) => {
-          const index = checkedKeys.value.indexOf(item);
-          if (index === -1) checkedKeys.value.push(item);
-          else checkedKeys.value.splice(index, 1);
+          const index = keys.indexOf(item);
+          if (index === -1) keys.push(item);
+          else keys.splice(index, 1);
         });
+        checkedKeys.value = [...new Set([...keys])];
       } else {
-        // eslint-disable-next-line no-debugger
-        debugger;
         if (!ids || !Array.isArray(ids) || !ids.length)
           return (checkedKeys.value = []);
         if (checkedKeys.value.includes(id)) {
@@ -120,7 +127,7 @@ export default defineComponent({
     // 设置select选择的值
     const setSelectVal = (ids) => {
       if (!Array.isArray(ids) || !ids.length) return (selectVal.value = "");
-      if (selectProps.multiple) {
+      if (isMultiple.value) {
         selectVal.value = [];
         ids.forEach((id) => {
           selectVal.value.push((map[id] && map[id][props.props.label]) || id);
@@ -141,8 +148,8 @@ export default defineComponent({
     // 更新 v-model
     const updateModel = (ids) => {
       if (!Array.isArray(ids) || !ids.length)
-        return context.emit("update:modelValue", "");
-      if (selectProps.multiple) {
+        return context.emit("update:modelValue", isMultiple.value ? [] : "");
+      if (isMultiple.value) {
         context.emit("update:modelValue", ids);
       } else {
         const id = ids[0];
@@ -159,9 +166,7 @@ export default defineComponent({
         // node选择
         setSelectNodeCheckbox(ids);
         updateModel(ids);
-      },
-      {
-        immediate: true,
+        expandedKeys.value = [...ids];
       }
     );
 
@@ -182,17 +187,27 @@ export default defineComponent({
     };
     const handleCheck = (node, { checkedKeys: handleCheckedKeys = [] }) => {
       if (selectProps.multiple) {
-        setCheckedKeys(handleCheckedKeys);
+        setCheckedKeys(handleCheckedKeys, true);
       } else {
         setCheckedKeys(node[props.nodeKey]);
       }
       context.emit("node-click", ...arguments);
     };
-    const handleRemoveTag = () => {
-      // context.emit("update:modelValue", "");
+    const handleRemoveTag = (tag) => {
+      const data = Object.values(map).find(
+        (item) => item[props.props.label] === tag
+      );
+      if (data) {
+        const id = data[props.nodeKey] || "";
+        const keys = [...checkedKeys.value];
+        const index = keys.indexOf(id);
+        if (index !== -1) keys.splice(index, 1);
+        checkedKeys.value = keys;
+        context.emit("remove-tag", data);
+      }
     };
     const handleClear = () => {
-      context.emit("update:modelValue", "");
+      context.emit("update:modelValue", isMultiple.value ? [] : "");
       context.emit("clear", ...arguments);
     };
 
