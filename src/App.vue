@@ -15,7 +15,7 @@
         v-model="formff.name"
         :treeData="treeData"
         nodeKey="id"
-        :selectProps="{ clearable: true, multiple: true }"
+        :selectProps="{ clearable: true }"
       ></select-tree>
     </el-form-item>
   </el-form>
@@ -25,7 +25,7 @@
       v-model="formff.name"
       :treeData="treeData"
       nodeKey="id"
-      :selectProps="{ clearable: true, multiple: true }"
+      :selectProps="{ clearable: true }"
     ></select-tree>
   </div>
   {{ typeof formff.name }}
@@ -68,6 +68,7 @@ export default defineComponent({
           label: "Level one 1",
           id: 1,
           status: true,
+          disabled: true,
           children: [
             {
               label: "Level two 1-1",

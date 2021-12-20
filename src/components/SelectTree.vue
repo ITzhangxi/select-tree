@@ -23,7 +23,8 @@
         :expanded-keys="expandedKeys"
         :props="props"
         v-bind="$attrs.treeProps"
-      />
+      >
+      </el-tree>
     </template>
   </el-select>
 </template>
@@ -181,6 +182,7 @@ export default defineComponent({
     );
 
     const handleNodeClick = (val = {}) => {
+      if (val.disabled) return;
       const id = val.id || "";
       setCheckedKeys(id);
       context.emit("node-click", ...arguments);
@@ -229,5 +231,8 @@ export default defineComponent({
 <style lang="scss">
 .el-tree-node:focus > .el-tree-node__content {
   background-color: transparent !important;
+}
+.custom-select-tree-node {
+  background-color: red;
 }
 </style>
