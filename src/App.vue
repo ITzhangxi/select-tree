@@ -20,6 +20,14 @@
     </el-form-item>
   </el-form>
   <el-button @click="handleSubmit">Submit</el-button>
+  <select-tree
+    v-model="formff.name"
+    :treeData="treeData"
+    nodeKey="id"
+    :selectProps="{ clearable: true }"
+  ></select-tree>
+  {{ typeof formff.name }}
+  {{ formff.name }}
 </template>
 
 <script>
@@ -30,7 +38,7 @@ export default defineComponent({
   name: "App",
   components: { SelectTree },
   setup() {
-    const formff = ref({ name: "" });
+    const formff = ref({ name: 1 });
     watch(
       () => formff.value.name,
       () => {

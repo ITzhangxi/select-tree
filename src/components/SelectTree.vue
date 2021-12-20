@@ -8,14 +8,6 @@
     @remove-tag="handleRemoveTag"
     @clear="handleClear"
   >
-    <!-- <el-option
-      v-for="item in Object.values(map)"
-      :key="item[nodeKey]"
-      :label="item[props.label]"
-      :value="item[nodeKey]"
-      style="display: none"
-    >
-    </el-option> -->
     <template #empty>
       <el-tree
         class="select-tree"
@@ -36,7 +28,7 @@
   </el-select>
 </template>
 <script>
-import { defineComponent, watch, ref, getCurrentInstance } from "vue";
+import { defineComponent, watch, ref, getCurrentInstance, nextTick } from "vue";
 const setActive = (() => {
   const sty = document.createElement("style");
   document.body.appendChild(sty);
@@ -88,7 +80,7 @@ export default defineComponent({
       default: () => ({ children: "children", label: "label" }),
     },
   },
-  emits: ["update:modelValue", "node-click", "clear"],
+  emits: ["update:modelValue", "node-click", "clear", "check"],
   setup(props, context) {
     const self = getCurrentInstance();
     const ctx = self.ctx || {};
@@ -99,73 +91,101 @@ export default defineComponent({
     const selectVal = ref(selectProps.multiple ? [] : "");
     const checkedKeys = ref([]);
     const expandedKeys = ref([]);
+    const selectRef = ref(null);
+    const treeRef = ref(null);
+
+    // 设置tree选中数据
+    const setCheckedKeys = (id, reset = false) => {
+      const ids = Array.isArray(id) ? id : [id];
+      if (selectProps.multiple) {
+        if (reset) checkedKeys.value = [];
+        ids.forEach((item) => {
+          const index = checkedKeys.value.indexOf(item);
+          if (index === -1) checkedKeys.value.push(item);
+          else checkedKeys.value.splice(index, 1);
+        });
+      } else {
+        // eslint-disable-next-line no-debugger
+        debugger;
+        if (!ids || !Array.isArray(ids) || !ids.length)
+          return (checkedKeys.value = []);
+        if (checkedKeys.value.includes(id)) {
+          checkedKeys.value = [];
+        } else {
+          checkedKeys.value = ids;
+        }
+      }
+    };
+
+    // 设置select选择的值
+    const setSelectVal = (ids) => {
+      if (!Array.isArray(ids) || !ids.length) return (selectVal.value = "");
+      if (selectProps.multiple) {
+        selectVal.value = [];
+        ids.forEach((id) => {
+          selectVal.value.push((map[id] && map[id][props.props.label]) || id);
+        });
+      } else {
+        const id = ids[0];
+        const value = (map[id] && map[id][props.props.label]) || id;
+        selectVal.value = value;
+      }
+    };
+
+    // 设置node checkbox
+    const setSelectNodeCheckbox = (ids) => {
+      nextTick(() => {
+        treeRef.value.setCheckedKeys(ids);
+      });
+    };
+    // 更新 v-model
+    const updateModel = (ids) => {
+      if (!Array.isArray(ids) || !ids.length)
+        return context.emit("update:modelValue", "");
+      if (selectProps.multiple) {
+        context.emit("update:modelValue", ids);
+      } else {
+        const id = ids[0];
+        context.emit("update:modelValue", id);
+      }
+    };
+
+    watch(
+      () => checkedKeys.value,
+      (ids = []) => {
+        setSelectVal(ids);
+        // 选项背景高亮
+        setActive(ids);
+        // node选择
+        setSelectNodeCheckbox(ids);
+        updateModel(ids);
+      },
+      {
+        immediate: true,
+      }
+    );
 
     watch(
       () => props.modelValue,
-      (val) => {
-        // eslint-disable-next-line no-debugger
-        const mVal = Array.isArray(val) ? val : [val];
-        if (selectProps.multiple) {
-          selectVal.value = [];
-          mVal.forEach((item) => {
-            selectVal.value.push(
-              (map[item] && map[item][props.props.label]) || item
-            );
-          });
-        } else {
-          selectVal.value = (map[val] && map[val][props.props.label]) || val;
-        }
-        checkedKeys.value = [...mVal];
-        expandedKeys.value = [...mVal];
-        setActive(mVal);
+      (id) => {
+        const ids = Array.isArray(id) ? id : [id];
+        if (JSON.stringify(ids) !== JSON.stringify(checkedKeys.value))
+          setCheckedKeys(ids, true);
       },
-      { immediate: true, deep: true }
+      { immediate: true }
     );
 
-    const selectRef = ref(null);
-    const treeRef = ref(null);
-    const handleNodeClick = (val) => {
-      const modelValue = Array.isArray(props.modelValue)
-        ? props.modelValue
-        : [];
-      let selectVal = new Set(modelValue);
-      if (selectProps.multiple) {
-        selectVal.has(val[props.nodeKey])
-          ? selectVal.delete(val[props.nodeKey])
-          : selectVal.add(val[props.nodeKey]);
-        selectVal = [...selectVal];
-        checkedKeys.value = [...selectVal];
-      } else {
-        selectVal = val[props.nodeKey];
-        selectRef.value && selectRef.value.blur();
-        let id = val[props.nodeKey];
-        checkedKeys.value = [id];
-      }
-      treeRef.value.setCheckedKeys(checkedKeys.value);
-      context.emit("update:modelValue", selectVal);
+    const handleNodeClick = (val = {}) => {
+      const id = val.id || "";
+      setCheckedKeys(id);
       context.emit("node-click", ...arguments);
     };
     const handleCheck = (node, { checkedKeys: handleCheckedKeys = [] }) => {
-      const modelValue = Array.isArray(props.modelValue)
-        ? props.modelValue
-        : [];
-      let selectVal = new Set(modelValue);
       if (selectProps.multiple) {
-        selectVal = [...handleCheckedKeys];
-        checkedKeys.value = [...handleCheckedKeys];
+        setCheckedKeys(handleCheckedKeys);
       } else {
-        if (handleCheckedKeys.includes(node[props.nodeKey])) {
-          selectVal = node[props.nodeKey];
-          selectRef.value && selectRef.value.blur();
-          let id = node[props.nodeKey];
-          checkedKeys.value = [id];
-        } else {
-          selectVal = "";
-          checkedKeys.value = [];
-        }
+        setCheckedKeys(node[props.nodeKey]);
       }
-      treeRef.value.setCheckedKeys(checkedKeys.value);
-      context.emit("update:modelValue", selectVal);
       context.emit("node-click", ...arguments);
     };
     const handleRemoveTag = () => {
