@@ -232,7 +232,4 @@ export default defineComponent({
 .el-tree-node:focus > .el-tree-node__content {
   background-color: transparent !important;
 }
-.custom-select-tree-node {
-  background-color: red;
-}
 </style>
